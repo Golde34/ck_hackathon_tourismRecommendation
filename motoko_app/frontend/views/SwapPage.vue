@@ -39,35 +39,38 @@
                     <div class="sc-input">
                         <div class="sci-hl">
                             <div class="sci-hl-input">
-                                <input placeholder=".0" />
+                                <input placeholder="0" v-model="zed_swap" :disabled="arrow"/>
                             </div>
                             <div class="sci-hl-info">
                                 <h4
                                     style="margin-top: 0; margin-bottom: 0; font-size: 25px; margin-top: 3px; margin-right: 5px;">
-                                    TOKEN 1</h4>
+                                    ZED</h4>
                                 <p style="margin-top: 0; margin-bottom: 0; font-size: 15px; margin-top: 10px;">
-                                    balance: {{ 0 }}</p>
+                                    balance: {{ zed_balance }}</p>
                             </div>
                         </div>
                         <div class="sci-hr"></div>
                     </div>
+                    <div class="sc-arrow-input">
+                        <button @click="arrow = !arrow" :class="arrow ? 'rotate-up' : ''"><i class="fa-solid fa-arrow-down fa-2x"></i></button>
+                    </div>
                     <div class="sc-output">
                         <div class="sci-hl">
                             <div class="sci-hl-input">
-                                <input placeholder=".0" />
+                                <input placeholder="0" v-model="yasuo_swap" :disabled="!arrow"/>
                             </div>
                             <div class="sci-hl-info">
                                 <h4
                                     style="margin-top: 0; margin-bottom: 0; font-size: 25px; margin-top: 3px; margin-right: 5px;">
-                                    TOKEN 2</h4>
+                                    YASUO</h4>
                                 <p style="margin-top: 0; margin-bottom: 0; font-size: 15px; margin-top: 10px;">
-                                    balance: {{ 0 }}</p>
+                                    balance: {{ yasuo_balance }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="sc-button-swap">
-                    <button>Swap</button>
+                    <button @click="swapToken">Swap</button>
                 </div>
             </div>
             <div class="transaction-card" v-if="display == 'transaction'">
@@ -81,14 +84,14 @@
                     <div class="sc-input">
                         <div class="sci-hl">
                             <div class="sci-hl-input">
-                                <input placeholder=".0" />
+                                <input placeholder="0" v-model="zed_transfer"/>
                             </div>
                             <div class="sci-hl-info">
                                 <h4
                                     style="margin-top: 0; margin-bottom: 0; font-size: 25px; margin-top: 3px; margin-right: 5px;">
-                                    TOKEN 1</h4>
+                                    ZED</h4>
                                 <p style="margin-top: 0; margin-bottom: 0; font-size: 15px; margin-top: 10px;">balance:
-                                    {{ 0 }}</p>
+                                    {{ zed_balance }}</p>
                             </div>
                         </div>
                         <div class="sci-hr"></div>
@@ -96,20 +99,19 @@
                     <div class="sc-output">
                         <div class="sci-hl">
                             <div class="sci-hl-input">
-                                <input placeholder=".0" />
+                                <input placeholder="aaaaa-aa" v-model="recive_principal"/>
                             </div>
                             <div class="sci-hl-info">
                                 <h4
                                     style="margin-top: 0; margin-bottom: 0; font-size: 25px; margin-top: 3px; margin-right: 5px;">
-                                    TOKEN 2</h4>
-                                <p style="margin-top: 0; margin-bottom: 0; font-size: 15px; margin-top: 10px;">balance:
-                                    {{ 0 }}</p>
+                                    Principal</h4>
+                                <p style="margin-top: 0; margin-bottom: 0; font-size: 15px; margin-top: 10px;"></p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="tc-button-swap">
-                    <button>Swap</button>
+                    <button @click="transferZed">Transfer</button>
                 </div>
             </div>
         </div>
@@ -120,8 +122,9 @@
 </template>
 
 <script setup>
-
-import { ref } from "vue"
+import { useCanister, useWallet } from "@connect2ic/vue"
+import { ref, watchEffect, watch } from "vue";
+import { Principal } from '@dfinity/principal';
 
 const popupTriggers = ref({
     buttonTrigger: false,
@@ -134,6 +137,70 @@ const TogglePopup = (trigger) => {
 
 const display = ref('transaction')
 const nav_check = ref('transaction')
+var arrow = ref(false)
+
+const [wallet] = useWallet()
+const [defi] = useCanister("defi")
+
+var yasuo_balance = ref(0)
+var zed_balance = ref(0)
+
+const getBalance = async () => {
+    zed_balance.value = await defi.value.zedBalanceOf(Principal.fromText(wallet.value.principal))
+    yasuo_balance.value = await defi.value.yasuoBalanceOf(Principal.fromText(wallet.value.principal))
+    console.log(zed_balance)
+    console.log(yasuo_balance)
+}
+
+watchEffect(() => {
+	if(wallet.value && defi.value) {
+		getBalance()
+	}else{
+        yasuo_balance.value = 0;
+        zed_balance.value = 0;
+    }
+});
+
+var yasuo_swap = ref(0)
+var zed_swap = ref(0)
+var recive_principal = ref("")
+var zed_transfer = ref(0)
+
+watch(zed_swap, (newValue, oldValue) => {
+    if(!arrow.value){
+        yasuo_swap.value = Math.ceil(newValue / 10)
+    }
+});
+
+watch(yasuo_swap, (newValue, oldValue) => {
+    if(arrow.value){
+        zed_swap.value = newValue * 10
+    }
+})
+
+const swapToken = async () => {
+    if(!arrow.value){
+        let res = await defi.value.swapZedToYasuo(BigInt(zed_swap.value))
+        if("Ok" in res){
+            zed_balance.value -= zed_swap.value
+            yasuo_balance.value += yasuo_swap.value
+        }
+    }else{
+        let res = await defi.value.swapYasuoToZed(BigInt(yasuo_swap.value))
+        if("Ok" in res){
+            zed_balance.value += zed_swap.value
+            yasuo_balance.value -= yasuo_swap.value
+        }
+    }
+}
+
+const transferZed = async () => {
+    let res = await defi.value.transferZed(Principal.fromText(recive_principal.value),zed_transfer.value)
+    console.log(res)
+    if("Ok" in res){
+        zed_balance.value -= zed_transfer.value
+    }
+}
 </script>
 
 
@@ -333,5 +400,16 @@ const nav_check = ref('transaction')
     margin-left: 30%;
     border-radius: 5px;
     height: 400px;
+}
+
+.sc-arrow-input {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    border: 0;
+}
+
+.rotate-up{
+    transform: rotate(180deg);
 }
 </style>
