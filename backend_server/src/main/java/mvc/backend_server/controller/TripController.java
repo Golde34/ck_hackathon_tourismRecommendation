@@ -42,6 +42,7 @@ public class TripController {
     @Autowired
     POIOfDayRepo poiOfDayRepo;
 
+    //generate trip tour
     @PostMapping("/generate")
     public Tour generateour(@RequestBody TripGenerateDTO tripGenerateDTO) throws IOException, ParseException {
 
@@ -107,6 +108,7 @@ public class TripController {
 
     }
 
+    //get trip tour byu account
     @GetMapping("/getByAccount/{account}")
     public ResponseEntity<ArrayList<Tour>> getTourByAccount(@PathVariable String account){
 
@@ -116,6 +118,8 @@ public class TripController {
             return new ResponseEntity<>(optTour, HttpStatus.OK);
 
     }
+
+    //get trip tour byu id
     @GetMapping("/getById/{id}")
     public ResponseEntity<Tour> getTourByAccount(@PathVariable int id){
         Tour optTour = tourRepo.getTourById(id);
@@ -123,7 +127,7 @@ public class TripController {
 
     }
 
-
+    //delete
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteTour(@PathVariable int id) {
 
@@ -135,8 +139,8 @@ public class TripController {
         }
     }
 
+    //update
     @PutMapping()
-
     public ResponseEntity<Tour> updateTour(@RequestBody Tour tour){
             int id = tour.getId();
             Tour oldTour = tourRepo.getTourById(id);
