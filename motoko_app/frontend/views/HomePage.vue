@@ -60,10 +60,28 @@
                     </div>
                 </div>
             </div>
-            <div class="pc-list">
-                <p id="list-title">My trip</p>
-                
+           <div class="container pc-list">
+        <div  class="tour-list-parent">
+          <div v-for="post of posts" :key="post" class="tour-child card">
+            <div class="top-right"><i class="fa-solid fa-trash-can fa-lg"></i></div>
+            <img
+              class="card-img-top"
+              src="https://hegka.com/storage/image-content/N8GKHx1ldeMY3uv2OPa9Ls5N9rt8U0N31rcFStIWVrRaX.webp"
+              alt="Card image cap"
+            />
+            <div class="caption">
+              <h5>{{post.numberOfDays}} days in Hanoi</h5>
+              <p class="date-detail">
+                {{ formatDate(post.startDate) }} - {{formatDate(post.endDate) }}
+              </p>
             </div>
+            <div class="card-body">
+              <p class="card-text text-center tour-summary">August . Popular Sights</p>
+              <a href="#" class="stretched-link"></a>
+            </div>
+          </div>
+        </div>
+      </div>
             <div class="pc-advertisement">
                 <p> Easy to use, easy to browse </p>
                 <ul class="plan-steps">
@@ -118,10 +136,11 @@
 </template>
 
 <script setup>
+import axios from "axios";
 import { PlanServices } from "../services/plan.services.js"
 import { useCanister, useWallet } from "@connect2ic/vue"
 import { Principal } from '@dfinity/principal';
-import { ref } from "vue";
+import { ref, watchEffect } from "vue";
 
 const [wallet] = useWallet()
 const [defi] = useCanister("defi")
@@ -152,6 +171,29 @@ const planning = async () => {
     }
 }
 
+var posts = ref([])
+var errors = ref([])
+
+const heroku = async () =>{
+    await axios.get(`https://tourismrecommendation.herokuapp.com/trip/getByAccount/`+wallet.value.principal)
+                .then((response) => {
+                    posts.value = response.data;
+                    console.log(this.posts)
+                })
+                .catch((e) => {
+                    errors.value.push(e);
+                    console.log("fail")
+            });
+}
+
+watchEffect(() => {
+	if(wallet.value) {
+		heroku()
+	}else{
+        posts.value = []
+        errors.value = []
+    }
+});
 // var today = new Date();
 // var dd = today.getDate();
 // var mm = today.getMonth() + 1; //January is 0!
@@ -173,6 +215,27 @@ const planning = async () => {
 </script>
 
 <script>
+export default {
+  data() {
+    return {
+      
+    };
+  },
+  created() {
+    
+  },
+  methods: {
+    formatDate(date) {
+      const options = {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      };
+      return new Date(date).toLocaleDateString("en", options);
+    },
+  },
+};
 document.addEventListener('DOMContentLoaded', function () {
     var parent = document.querySelector('.splitview'),
         topPanel = parent.querySelector('.top'),
@@ -704,5 +767,58 @@ body {
 .modal-btn:checked~.logo img {
     filter: brightness(100%);
     transition: all 250ms linear;
+}
+.tour-list-parent {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 50px;
+}
+
+.tour-child {
+    flex: 0 0 30%;
+    /* explanation below */
+    margin: 10px
+}
+
+.caption {
+    position: absolute;
+    top: 0;
+    left: 0;
+    text-align: center;
+    color: white;
+    transform: translate(0%, 90%);
+}
+
+.tour-detail {
+    display: none;
+}
+
+.top-right {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    color: white;
+    z-index: 5;
+    cursor: pointer;
+}
+
+.create-trip-btn {
+    float: right;
+    border-radius: 20px;
+    background-color: gray;
+    color: white;
+}
+
+.create-trip-btn:hover {
+    background-color: black;
+    color: white;
+}
+
+.card-img-top {
+    filter: brightness(50%)
+}
+
+.full-trip-link {
+    margin: 0 auto;
 }
 </style>

@@ -1,26 +1,27 @@
+
 <template>
     <div class="list-booking">
         <div class="lb-header">
             <h1>My Booking List</h1>
             <h4>See your booking room information</h4>
         </div>
-        <div class="hotel-h-item-b">
+        <div class="hotel-h-item-b" v-for="room in list_booking" :key="room">
             <div class="hotel-h-item-room">
                 <div class="hotel-item-room-name">
-                    Delux Room
+                    {{room._name}}
                 </div>
                 <div class="hotel-item-room-h">
                     <div class="hotel-item-room-hl">
                         <img width="300" height="200"
                             src="https://khachsantaythi.com.vn/wp-content/uploads/2019/05/DSCF4744-1024x683.jpg" />
                         <div class="hiu-symbol">
-                            <span><i class="fa-solid fa-house"></i> - 40m2</span>
+                            <span><i class="fa-solid fa-house"></i> - {{room._size}}</span>
                         </div>
                         <div class="hiu-symbol">
-                            <span><i class="fa-solid fa-bed"></i> - 2 singles bed</span>
+                            <span><i class="fa-solid fa-bed"></i> - {{room._bed}}</span>
                         </div>
                         <div class="hiu-symbol">
-                            <span><i class="fa-solid fa-wifi"></i> - Wifi</span>
+                            <span><i class="fa-solid fa-wifi"></i> - {{room._wifi ? "Wifi" : "no Wifi"}}</span>
                         </div>
                         <div class="hiu-symbol">
                             <span><i class="fa-solid fa-circle-plus"></i> View more</span>
@@ -29,63 +30,17 @@
                     <div class="hotel-item-room-hr">
                         <div class="hotel-item-room-card-up">
                             <div class="hirc-u-header">Benefits</div>
-                            <div class="hiu-symbol">
-                                <span><i class="fa-solid fa-circle-check"></i> Breakfast included</span>
+                            <div class="hiu-symbol" v-for="benefit in room._benefits" :key="benefit">
+                                <span><i class="fa-solid fa-circle-check"></i> {{benefit}}</span>
                             </div>
                         </div>
                         <div class="hotel-item-room-card-dowm">
                             <div class="hirc-d-item">
                                 <div class="hm-text-light">
-                                    <span style="font-size: 30px;">1.899.000 VND</span>/night
+                                    <span style="font-size: 30px;">{{room._sellPrice}} VND</span>/night
                                 </div>
                                 <div class="hm-button-t">
-                                    <button> CANCEL</button>
-                                </div>
-                            </div>
-                            <div class="hirc-d-text">
-                                The above prices include taxes and fees
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="hotel-h-item-b">
-            <div class="hotel-h-item-room">
-                <div class="hotel-item-room-name">
-                    Delux Room
-                </div>
-                <div class="hotel-item-room-h">
-                    <div class="hotel-item-room-hl">
-                        <img width="300" height="200"
-                            src="https://khachsantaythi.com.vn/wp-content/uploads/2019/05/DSCF4744-1024x683.jpg" />
-                        <div class="hiu-symbol">
-                            <span><i class="fa-solid fa-house"></i> - 40m2</span>
-                        </div>
-                        <div class="hiu-symbol">
-                            <span><i class="fa-solid fa-bed"></i> - 2 singles bed</span>
-                        </div>
-                        <div class="hiu-symbol">
-                            <span><i class="fa-solid fa-wifi"></i> - Wifi</span>
-                        </div>
-                        <div class="hiu-symbol">
-                            <span><i class="fa-solid fa-circle-plus"></i> View more</span>
-                        </div>
-                    </div>
-                    <div class="hotel-item-room-hr">
-                        <div class="hotel-item-room-card-up">
-                            <div class="hirc-u-header">Benefits</div>
-                            <div class="hiu-symbol">
-                                <span><i class="fa-solid fa-circle-check"></i> Breakfast included</span>
-                            </div>
-                        </div>
-                        <div class="hotel-item-room-card-dowm">
-                            <div class="hirc-d-item">
-                                <div class="hm-text-light">
-                                    <span style="font-size: 30px;">1.899.000 VND</span>/night
-                                </div>
-                                <div class="hm-button-t">
-                                    <button>CANCEL</button>
+                                    <button @click="cancelRoom(room._roomID)"> CANCEL</button>
                                 </div>
                             </div>
                             <div class="hirc-d-text">
@@ -98,6 +53,46 @@
         </div>
     </div>
 </template>
+
+<script setup>
+import { useCanister, useWallet } from "@connect2ic/vue"
+import { ref, watchEffect } from "vue";
+
+
+var list_booking = ref([])
+
+const [wallet] = useWallet()
+const [defi] = useCanister("defi")
+
+
+const getMyBookedRooms = async () => {
+    var res = await defi.value.getMyBookedRooms()
+    list_booking.value = res
+    console.log(res)
+}
+
+const cancelRoom = async (room_id) => {
+    let res = await defi.value.cancelBooking(room_id)
+    if("Ok" in res){
+        var temp = []
+        for(const i in list_booking.value){
+            if(list_booking.value[i]._roomID != room_id){
+                temp.push(list_booking.value[i])
+            }
+        }
+        list_booking.value = temp
+    }
+}
+
+watchEffect(() => {
+	if(wallet.value && defi.value) {
+		getMyBookedRooms()
+	}else{
+        yasuo_balance.value = 0;
+        zed_balance.value = 0;
+    }
+});
+</script>
 
 <style scoped>
 html {
@@ -215,4 +210,5 @@ html {
     color: rgb(66, 66, 66);
     padding-left: 7px;
 }
+
 </style>
